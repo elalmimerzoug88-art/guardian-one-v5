@@ -13,10 +13,13 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Unzip project
+    - name: Unzip project and fix paths
       run: |
         if [ -f guardian-one.zip ]; then
           unzip -o guardian-one.zip
+          if [ -d "guardian-one" ]; then
+            cp -r guardian-one/* . || true
+          fi
         fi
 
     - name: Set up JDK 17
@@ -25,18 +28,20 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Setup Gradle
-      uses: gradle/actions/setup-gradle@v3
-
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew || true
 
     - name: Build APK with Gradle
-      run: ./gradlew assembleDebug
+      run: |
+        if [ -f "./gradlew" ]; then
+          ./gradlew assembleDebug
+        else
+          gradle assembleDebug
+        fi
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: app-debug
-        path: app/build/outputs/apk/debug/app-debug.apk
+        path: "**/build/outputs/apk/debug/*.apk"
         
