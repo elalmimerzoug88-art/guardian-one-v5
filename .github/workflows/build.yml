@@ -16,6 +16,7 @@ jobs:
     - name: Unzip project if present
       run: |
         if [ -f guardian-one.zip ]; then
+          echo "📦 فك ضغط guardian-one.zip..."
           unzip -o guardian-one.zip
         fi
 
@@ -25,28 +26,35 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Locate and Build APK
+    - name: Locate Project & Build APK
       run: |
-        # البحث الديناميكي عن موقع ملف gradlew
-        GRADLEW_FILE=$(find . -name "gradlew" -type f | head -n 1)
+        echo "🔍 البحث عن مسار build.gradle.kts أو build.gradle..."
+        
+        # البحث عن ملف البناء الخاص بالمشروع
+        BUILD_FILE=$(find . -name "build.gradle.kts" -o -name "build.gradle" | head -n 1)
+        
+        if [ -z "$BUILD_FILE" ]; then
+          echo "❌ لم يتم العثور على ملف build.gradle!"
+          exit 1
+        fi
 
-        if [ -z "$GRADLEW_FILE" ]; then
-          echo "❌ لم يتم العثور على gradlew، جارٍ البحث عن build.gradle.kts..."
-          BUILD_FILE=$(find . -name "build.gradle.kts" -o -name "build.gradle" | head -n 1)
-          if [ -n "$BUILD_FILE" ]; then
-            TARGET_DIR=$(dirname "$BUILD_FILE")
-            cd "$TARGET_DIR"
-            gradle assembleDebug --stacktrace
-          else
-            echo "❌ لم يتم العثور على ملفات مشروع أندرويد!"
-            exit 1
-          fi
-        else
-          TARGET_DIR=$(dirname "$GRADLEW_FILE")
-          echo "📁 تم العثور على المشروع في: $TARGET_DIR"
-          cd "$TARGET_DIR"
+        # تحديد مجلد المشروع وتغيير الدليل إليه
+        PROJECT_DIR=$(dirname "$BUILD_FILE")
+        echo "📁 تم العثور على المشروع في المجلد: $PROJECT_DIR"
+        cd "$PROJECT_DIR"
+
+        # التحقق من وجود gradlew
+        if [ -f "./gradlew" ]; then
+          echo "🚀 تشغيل البناء باستخدام ./gradlew ..."
           chmod +x ./gradlew
           ./gradlew assembleDebug --stacktrace
+        elif [ -f "../gradlew" ]; then
+          echo "🚀 تشغيل البناء باستخدام ../gradlew ..."
+          chmod +x ../gradlew
+          ../gradlew assembleDebug --stacktrace
+        else
+          echo "🚀 تشغيل البناء باستخدام Gradle النظام..."
+          gradle assembleDebug --stacktrace
         fi
 
     - name: Upload APK
