@@ -13,7 +13,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Unzip project
+    - name: Unzip project if present
       run: |
         if [ -f guardian-one.zip ]; then
           unzip -o guardian-one.zip
@@ -25,14 +25,29 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Grant execute permission for gradlew
+    - name: Locate and Build APK
       run: |
-        chmod +x guardian-one/gradlew || chmod +x gradlew || true
+        # البحث الديناميكي عن موقع ملف gradlew
+        GRADLEW_FILE=$(find . -name "gradlew" -type f | head -n 1)
 
-    - name: Build APK with Gradle
-      run: |
-        cd guardian-one
-        ./gradlew assembleDebug --stacktrace
+        if [ -z "$GRADLEW_FILE" ]; then
+          echo "❌ لم يتم العثور على gradlew، جارٍ البحث عن build.gradle.kts..."
+          BUILD_FILE=$(find . -name "build.gradle.kts" -o -name "build.gradle" | head -n 1)
+          if [ -n "$BUILD_FILE" ]; then
+            TARGET_DIR=$(dirname "$BUILD_FILE")
+            cd "$TARGET_DIR"
+            gradle assembleDebug --stacktrace
+          else
+            echo "❌ لم يتم العثور على ملفات مشروع أندرويد!"
+            exit 1
+          fi
+        else
+          TARGET_DIR=$(dirname "$GRADLEW_FILE")
+          echo "📁 تم العثور على المشروع في: $TARGET_DIR"
+          cd "$TARGET_DIR"
+          chmod +x ./gradlew
+          ./gradlew assembleDebug --stacktrace
+        fi
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
