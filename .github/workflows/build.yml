@@ -13,14 +13,19 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Unzip project and fix paths
+    - name: Extract and setup Android folder structure
       run: |
         if [ -f guardian-one.zip ]; then
           unzip -o guardian-one.zip
-          if [ -d "guardian-one" ]; then
-            cp -r guardian-one/* . || true
-          fi
         fi
+        
+        # نقل المحتويات إذا كانت داخل مجلد guardian-one فرعي
+        if [ -d "guardian-one" ]; then
+          cp -rn guardian-one/* . || true
+        fi
+        
+        # التأكد من صلاحيات التنفيذ لـ gradlew
+        find . -name "gradlew" -exec chmod +x {} \;
 
     - name: Set up JDK 17
       uses: actions/setup-java@v4
@@ -28,15 +33,17 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew || true
-
     - name: Build APK with Gradle
       run: |
-        if [ -f "./gradlew" ]; then
-          ./gradlew assembleDebug
+        # البحث عن ملف gradlew وتشغيله أينما وجد
+        GRADLEW_PATH=$(find . -maxdepth 2 -name "gradlew" | head -n 1)
+        if [ -n "$GRADLEW_PATH" ]; then
+          DIR=$(dirname "$GRADLEW_PATH")
+          cd "$DIR"
+          ./gradlew assembleDebug --stacktrace
         else
-          gradle assembleDebug
+          echo "لم يتم العثور على ملف gradlew"
+          exit 1
         fi
 
     - name: Upload APK
