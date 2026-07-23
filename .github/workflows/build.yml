@@ -13,10 +13,9 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Unzip project if present
+    - name: Unzip project
       run: |
         if [ -f guardian-one.zip ]; then
-          echo "📦 فك ضغط guardian-one.zip..."
           unzip -o guardian-one.zip
         fi
 
@@ -26,44 +25,21 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Locate Project & Build APK
+    - name: Build Android App & Copy APK
       run: |
-        echo "🔍 البحث عن مسار build.gradle.kts أو build.gradle..."
-        BUILD_FILE=$(find . -name "build.gradle.kts" -o -name "build.gradle" | head -n 1)
-        
-        if [ -z "$BUILD_FILE" ]; then
-          echo "❌ لم يتم العثور على ملف build.gradle!"
-          exit 1
-        fi
+        # الدخول لمجلد المشروع الحقيقي
+        cd guardian-one
 
-        PROJECT_DIR=$(dirname "$BUILD_FILE")
-        echo "📁 تم العثور على المشروع في المجلد: $PROJECT_DIR"
-        cd "$PROJECT_DIR"
+        # منح الصلاحيات وتشغيل البناء
+        chmod +x ./gradlew
+        ./gradlew assembleDebug --stacktrace
 
-        if [ -f "./gradlew" ]; then
-          echo "🚀 تشغيل البناء باستخدام ./gradlew ..."
-          chmod +x ./gradlew
-          ./gradlew assembleDebug --stacktrace
-        elif [ -f "../gradlew" ]; then
-          echo "🚀 تشغيل البناء باستخدام ../gradlew ..."
-          chmod +x ../gradlew
-          ../gradlew assembleDebug --stacktrace
-        else
-          echo "🚀 تشغيل البناء باستخدام Gradle النظام..."
-          gradle assembleDebug --stacktrace
-        fi
+        # نسخ ملف الـ APK الناتج مباشرة إلى جذر المستودع الرئيسي
+        cp app/build/outputs/apk/debug/app-debug.apk $GITHUB_WORKSPACE/final-app-debug.apk
 
-        # 🎯 نقل ملف الـ APK المبنّي إلى مجلد الجذر الأصلي لضمان رفعه
-        ROOT_DIR="$GITHUB_WORKSPACE"
-        FOUND_APK=$(find . -name "*.apk" | head -n 1)
-        if [ -n "$FOUND_APK" ]; then
-          echo "✅ تم العثور على APK: $FOUND_APK -> نَقْلُه إلى الجذر"
-          cp "$FOUND_APK" "$ROOT_DIR/app-debug.apk"
-        fi
-
-    - name: Upload APK
+    - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: app-debug
-        path: "app-debug.apk"
+        name: guardian-one-apk
+        path: final-app-debug.apk
         
