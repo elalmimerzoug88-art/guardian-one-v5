@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Inspect Repository Structure
 
 on:
   push:
@@ -6,34 +6,18 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  inspect:
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Unzip project
+    - name: Unzip & Print Directory Tree
       run: |
         if [ -f guardian-one.zip ]; then
           unzip -o guardian-one.zip
         fi
-
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-
-    - name: Build Android App
-      run: |
-        cd guardian-one
-        chmod +x ./gradlew
-        ./gradlew assembleDebug --stacktrace
-
-    - name: Upload APK Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: guardian-one-apk
-        path: "**/outputs/apk/debug/*.apk"
+        echo "=== 📁 هيكلية الملفات كاملة ==="
+        find . -maxdepth 4 -not -path '*/.*'
         
