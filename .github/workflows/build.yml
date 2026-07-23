@@ -29,8 +29,6 @@ jobs:
     - name: Locate Project & Build APK
       run: |
         echo "🔍 البحث عن مسار build.gradle.kts أو build.gradle..."
-        
-        # البحث عن ملف البناء الخاص بالمشروع
         BUILD_FILE=$(find . -name "build.gradle.kts" -o -name "build.gradle" | head -n 1)
         
         if [ -z "$BUILD_FILE" ]; then
@@ -38,12 +36,10 @@ jobs:
           exit 1
         fi
 
-        # تحديد مجلد المشروع وتغيير الدليل إليه
         PROJECT_DIR=$(dirname "$BUILD_FILE")
         echo "📁 تم العثور على المشروع في المجلد: $PROJECT_DIR"
         cd "$PROJECT_DIR"
 
-        # التحقق من وجود gradlew
         if [ -f "./gradlew" ]; then
           echo "🚀 تشغيل البناء باستخدام ./gradlew ..."
           chmod +x ./gradlew
@@ -61,5 +57,5 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: app-debug
-        path: "**/build/outputs/apk/debug/*.apk"
+        path: "**/outputs/apk/debug/*.apk"
         
